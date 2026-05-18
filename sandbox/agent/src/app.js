@@ -222,6 +222,13 @@ app.delete("/delete-files", async (req, res) => {
       return { [ file ]: "Error: Path is protected and cannot be deleted." };
     }
 
+
+    try {
+      await fs.promises.access(filePath);
+    } catch {
+      return { [ file ]: "Error: File or directory does not exist." };
+    }
+
     try {
       await fs.promises.rm(filePath, { recursive: true, force: true });
       return { [ file ]: "Deleted successfully" };
