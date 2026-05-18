@@ -9,10 +9,13 @@ const server = app.listen(PORT, () => {
 server.on("upgrade", (req, socket, head) => {
   const host = req.headers.host;
   const sandboxId = host?.split(".")[0];
+  const subdomain = host?.split(".")[1];
 
-  if (host?.split(".")[1] === "agent") {
+  if (subdomain === "agent") {
     return getAgentProxy(sandboxId).upgrade(req, socket, head);
-  } else if (host?.split(".")[1] === "preview") {
+  } else if (subdomain === "preview") {
     return getServiceProxy(sandboxId).upgrade(req, socket, head);
+  } else {
+    socket.destroy();
   }
 });
