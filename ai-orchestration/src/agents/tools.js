@@ -8,11 +8,7 @@ export const listFiles = tool(
     console.log("Using ListFiles Tool");
     console.log("================================");
 
-    const response = await axios.get("http://127.0.0.1/list-files", {
-      headers: {
-        Host: "019e3bb8-f446-73de-826b-e1df2445145c.agent.localhost"
-      }
-    });
+    const response = await axios.get("http://sandbox-service-019e4007-3329-711a-8919-6eb5b5fe9a2a:3000/list-files")
 
     console.log("================================");
     console.log("Reponse from ListFiles Tool : ", response.data);
@@ -34,14 +30,9 @@ export const readFiles = tool(
     console.log("===============================");
     console.log("Using ReadFiles Tool with files : ", files);
     console.log("===============================");
-
-    const fileParam = Array.isArray(files) ? files.join(",") : files;
-    const response = await axios.get(`http://127.0.0.1/read-files?files=${fileParam}`, {
-      headers: {
-        Host: "019e3bb8-f446-73de-826b-e1df2445145c.agent.localhost"
-      }
-    });
-
+    
+    const response = await axios.get("http://sandbox-service-019e4007-3329-711a-8919-6eb5b5fe9a2a:3000/read-files?files=" + files.join(","))
+    
     console.log("===============================");
     console.log("Reponse from ReadFiles Tool : ", response.data);
     console.log("===============================");
@@ -69,11 +60,7 @@ export const updateFiles = tool(
     console.log("Using UpdateFiles Tool with files : ", files);
     console.log("==============================");
 
-    const response = await axios.patch("http://127.0.0.1/update-files", { updates: files }, {
-      headers: {
-        Host: "019e3bb8-f446-73de-826b-e1df2445145c.agent.localhost"
-      }
-    });
+    const response = await axios.patch("http://sandbox-service-019e4007-3329-711a-8919-6eb5b5fe9a2a:3000/update-files", { updates: files })
     
     console.log("==============================");
     console.log("Reponse from UpdateFiles Tool : ", response.data);
@@ -106,12 +93,7 @@ export const deleteFiles = tool(
     console.log("Using DeleteFiles Tool with files : ", files);
     console.log("==============================");
 
-    const response = await axios.delete("http://127.0.0.1/delete-files", {
-      headers: {
-        Host: "019e3bb8-f446-73de-826b-e1df2445145c.agent.localhost"
-      },
-      data: { files }
-    });
+    const response = await axios.delete("http://sandbox-service-019e4007-3329-711a-8919-6eb5b5fe9a2a:3000/delete-files", { data: { files } })
 
     console.log("==============================");
     console.log("Reponse from DeleteFiles Tool : ", response.data);
