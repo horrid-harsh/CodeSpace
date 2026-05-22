@@ -5,21 +5,44 @@ const agentRouter = Router();
 
 agentRouter.post("/invoke", async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, projectId } = req.body;
 
-    const response = await agent.invoke({
-      messages: [
-        {
-          role: "user",
-          content: message,
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    });
+
+    const response = await agent.stream(
+      {
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert autonomous coding agent. Whenever you are asked to create or modify code, you MUST use the `update_files` tool to write your changes to the filesystem. DO NOT just output code blocks in your chat response. Make sure to use the correct relative paths like 'src/App.jsx'."
+          },
+          {
+            role: "user",
+            content: message,
+          },
+        ],
+      },
+      {
+        context: {
+          projectId,
+          writer: (msg) => {
+            console.log(msg);
+            res.write(`data: ${JSON.stringify({ log: msg })}\n\n`);
+          },
         },
-      ],
-    });
+        streamMode: "custom",
+      },
+    );
 
-    return res.status(200).json({
-      status: "success",
-      response,
-    });
+    for await (const chunk of response) {
+      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    }
+
+    return res.end();
   } catch (err) {
     console.log(err);
     return res.status(500).json({

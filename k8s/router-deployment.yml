@@ -20,11 +20,11 @@ spec:
         name:  router-server
         resources:
           requests:
-            cpu: "250m"
-            memory: "250Mi"
+            cpu: "100m"
+            memory: "128Mi"
           limits:
-            cpu: "500m"
-            memory: "500M" 
+            cpu: "250m"
+            memory: "256Mi" 
         livenessProbe:
           httpGet:
             path: /api/status/healthz
