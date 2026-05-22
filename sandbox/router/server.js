@@ -2,8 +2,8 @@ import app, { getServiceProxy, getAgentProxy } from "./src/app.js";
 
 const PORT = 3000;
 
-const server = app.listen(PORT, () => {
-    console.log(`Router is running at http://localhost:${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Router is running at http://0.0.0.0:${PORT}`);
 });
 
 server.on("upgrade", (req, socket, head) => {

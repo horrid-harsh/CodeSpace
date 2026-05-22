@@ -5,7 +5,7 @@ metadata:
   labels:
     name:  ai-deployment
 spec:
-  replicas: 2
+  replicas: 1 
   selector:
     matchLabels:
       app:  ai-server
@@ -19,10 +19,10 @@ spec:
         name:  ai-server
         resources:
           limits: 
-            cpu: "500m"
+            cpu: "300m"
             memory: "256Mi"
           requests:
-            cpu: "250m"
+            cpu: "100m"
             memory: "128Mi"
         env:
         - name: MISTRAL_API_KEY
