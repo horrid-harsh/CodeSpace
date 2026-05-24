@@ -5,7 +5,6 @@ import path from 'path';
 import { Server } from "socket.io";
 import http from "http";
 import pty from "node-pty";
-import os from "os";
 
 const WORKING_DIR = "/workspace";
 
@@ -17,6 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const io = new Server(httpServer, {
+    perMessageDeflate: false,
     cors: {
         origin: "*",
         methods: [ "GET", "POST", "PATCH" ],
@@ -30,35 +30,47 @@ app.get("/", (req, res) => {
   });
 });
 
-const shell = process.env.SHELL || "bash";
+function createTerminalProcess() {
+  const shell = process.env.SHELL || "bash";
+  const shellArgs = shell.includes("bash") ? ["--noprofile", "--norc"] : [];
 
-const ptyProcess = pty.spawn(shell, shell.includes("bash") ? ["--noprofile", "--norc"] : [], {
-  name: "xterm-color",
-  cols: 80,
-  rows: 30,
-  cwd: WORKING_DIR,
-  env: process.env,
-});
+  return pty.spawn(shell, shellArgs, {
+    name: "xterm-color",
+    cols: 80,
+    rows: 30,
+    cwd: WORKING_DIR,
+    env: process.env,
+  });
+}
 
-ptyProcess.onData((data) => {
-  io.emit("terminal-output", data);
-});
+function setupTerminalSocket(io) {
+  const terminal = createTerminalProcess();
 
-ptyProcess.onExit((exitCode, signal) => {
-  console.log(`PTY Process exited with code: ${exitCode}, signal: ${signal}`);
-});
-
-io.on("connection", (socket) => {
-  console.log("Client connected: " + socket.id);
-
-  socket.on("terminal-input", (data) => {
-    ptyProcess.write(data);
+  terminal.onData((output) => {
+    io.emit("terminal-output", output);
   });
 
-  socket.on("disconnect", () => {
-    console.log("Client disconnected: " + socket.id);
+  terminal.onExit(({ exitCode, signal }) => {
+    console.log(`Terminal exited with code: ${exitCode}, signal: ${signal}`);
   });
-})
+
+  io.on("connection", (socket) => {
+    console.log(`Client connected: ${socket.id}`);
+
+    socket.on("terminal-input", (input) => {
+      const terminalInput = typeof input === "string" ? input : input?.input;
+      if (terminalInput) {
+        terminal.write(terminalInput);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log(`Client disconnected: ${socket.id}`);
+    });
+  });
+}
+
+setupTerminalSocket(io);
 
 /**
  * @route GET /list-files

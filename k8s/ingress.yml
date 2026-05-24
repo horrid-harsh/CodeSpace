@@ -38,6 +38,16 @@ spec:
             name: ai-service
             port: 
               number: 80
+
+  - http:
+      paths:
+      - pathType: ImplementationSpecific
+        path: /socket.io(/|$)(.*)
+        backend:
+          service:
+            name: router-service
+            port:
+              number: 80
             
               
   - host: "*.preview.localhost"

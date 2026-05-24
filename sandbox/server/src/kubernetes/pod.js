@@ -36,9 +36,15 @@ export async function createPod(sandboxId) {
           imagePullPolicy: "IfNotPresent",
           name: "sandbox-container",
           ports: [{ containerPort: 5173, name: "http" }],
+          env: [
+            {
+              name: "SANDBOX_ID",
+              value: sandboxId,
+            },
+          ],
           resources: {
-            requests: { cpu: "100m", memory: "128Mi" },
-            limits: { cpu: "250m", memory: "256Mi" },
+            requests: { cpu: "250m", memory: "256Mi" },
+            limits: { cpu: "500m", memory: "512Mi" },
           },
           volumeMounts: [
             {
