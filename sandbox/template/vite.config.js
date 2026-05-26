@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-const sandboxId = process.env.SANDBOX_ID
-const hmrHost = sandboxId ? `${sandboxId}.preview.localhost` : 'localhost'
+const sandboxId = process.env.SANDBOX_ID;
+const hmrHost = sandboxId ? `${sandboxId}.preview.localhost` : "localhost";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -21,6 +21,6 @@ export default defineConfig({
       usePolling: true,
       interval: 100,
       ignored: ["**/node_modules/**", "**/.git/**"],
-    }
-  }
-})
+    },
+  },
+});

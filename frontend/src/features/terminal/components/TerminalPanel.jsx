@@ -22,10 +22,10 @@ export default function TerminalPanel() {
     const xterm = new Terminal({
       cursorBlink: true,
       theme: {
-        background: '#0F172A',
-        foreground: '#F8FAFC',
-        cursor: '#A855F7',
-        selectionBackground: 'rgba(168, 85, 247, 0.3)',
+        background: '#000000',
+        foreground: '#e2e2e2',
+        cursor: '#4D8CFF',
+        selectionBackground: 'rgba(77, 140, 255, 0.3)',
       },
       fontFamily: 'var(--font-mono)',
       fontSize: 13,
@@ -98,8 +98,8 @@ export default function TerminalPanel() {
   }, [socket, sendCommand]);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-800/50 border-b border-slate-700">
+    <div className="flex flex-col h-full w-full">
+      <div className="flex items-center justify-between px-4 py-2 bg-white/5 thin-border-b">
         <div className="flex items-center gap-2 text-slate-300 text-sm font-medium">
           <TerminalIcon className="w-4 h-4" />
           <span>Console</span>
@@ -110,7 +110,7 @@ export default function TerminalPanel() {
         </div>
       </div>
       
-      <div className="flex-1 p-3 overflow-hidden relative bg-slate-900">
+      <div className="flex-1 p-3 overflow-hidden relative bg-background">
         <div ref={terminalRef} className="absolute inset-2" />
       </div>
     </div>

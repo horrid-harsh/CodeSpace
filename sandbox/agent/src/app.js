@@ -15,6 +15,17 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Add CORS headers
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 const io = new Server(httpServer, {
     perMessageDeflate: false,
     cors: {
@@ -32,14 +43,35 @@ app.get("/", (req, res) => {
 
 function createTerminalProcess() {
   const shell = process.env.SHELL || "bash";
-  const shellArgs = shell.includes("bash") ? ["--noprofile", "--norc"] : [];
+  
+  let shellArgs = [];
+  if (shell.includes("bash")) {
+    const rcPath = path.join(WORKING_DIR, '.terminal_rc');
+    try {
+      fs.writeFileSync(rcPath, `
+export PS1='\\[\\e[1;32m\\]➜\\[\\e[0m\\] \\[\\e[1;36m\\]\\w\\[\\e[0m\\] \\$ '
+alias ls='ls --color=auto'
+alias ll='ls -la --color=auto'
+alias grep='grep --color=auto'
+export FORCE_COLOR=1
+      `.trim());
+      shellArgs = ["--rcfile", rcPath];
+    } catch (e) {
+      console.error("Failed to write .terminal_rc", e);
+    }
+  }
 
   return pty.spawn(shell, shellArgs, {
-    name: "xterm-color",
+    name: "xterm-256color",
     cols: 80,
     rows: 30,
     cwd: WORKING_DIR,
-    env: process.env,
+    env: {
+      ...process.env,
+      TERM: "xterm-256color",
+      COLORTERM: "truecolor",
+      FORCE_COLOR: "1"
+    },
   });
 }
 

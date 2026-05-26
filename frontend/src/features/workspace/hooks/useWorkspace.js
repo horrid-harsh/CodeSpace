@@ -24,8 +24,14 @@ export function useWorkspace() {
     }
   }, [setSandboxId, setPreviewUrl, setIsLoading, setError]);
 
+  const exitWorkspace = useCallback(() => {
+    setSandboxId(null);
+    setPreviewUrl(null);
+  }, [setSandboxId, setPreviewUrl]);
+
   return {
     ...state,
-    handleStartSandbox
+    handleStartSandbox,
+    exitWorkspace
   };
 }
