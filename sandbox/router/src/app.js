@@ -2,9 +2,21 @@ import express from "express";
 import morgan from "morgan";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import http from 'http';
+import { createProxyServer } from 'httpxy';
 
 const app = express();
 app.use(morgan("combined"));
+
+// Global CORS to prevent CORS errors during 502/504 proxy failures
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.get("/api/status/healthz", (req, res) => {
   res.status(200).json({
@@ -62,7 +74,6 @@ export function getServiceProxy(sandboxId) {
     serviceProxies[sandboxId] = createProxyMiddleware({
       target,
       changeOrigin: true,
-      ws: true,
       timeout: 0,
       proxyTimeout: 0,
     });
@@ -77,7 +88,6 @@ export function getAgentProxy(sandboxId) {
     agentProxies[sandboxId] = createProxyMiddleware({
       target,
       changeOrigin: true,
-      ws: true,
       timeout: 0,
       proxyTimeout: 0,
     });
@@ -103,23 +113,32 @@ app.use((req, res, next) => {
 
 const server = http.createServer(app);
 
+// Single httpxy proxy for all WebSocket upgrades
+const wsProxy = createProxyServer({ changeOrigin: true });
+wsProxy.on('error', (err, req, socket) => {
+  console.error('WS proxy error:', err.message);
+  socket?.destroy();
+});
+
 server.on("upgrade", (req, socket, head) => {
   const host = req.headers.host;
   const { sandboxId, type } = getSandboxRoute(req);
 
   console.log(`WS upgrade request: ${host}, sandboxId: ${sandboxId}, type: ${type}`);
 
+  socket.on('error', () => socket.destroy());
+
   if (!sandboxId || !type) {
     socket.destroy();
+  } else if (type === "agent") {
+    wsProxy.ws(req, socket, { target: `http://sandbox-service-${sandboxId}:3000` }, head)
+      .catch(() => socket.destroy());
+  } else if (type === "preview") {
+    wsProxy.ws(req, socket, { target: `http://sandbox-service-${sandboxId}` }, head)
+      .catch(() => socket.destroy());
   } else {
-    if (type !== "agent" && type !== "preview") {
-      console.error(`Unknown type: ${type}`);
-      socket.destroy();
-      return;
-    }
-
-    const proxy = type === "agent" ? getAgentProxy(sandboxId) : getServiceProxy(sandboxId);
-    proxy.upgrade(req, socket, head);
+    console.error(`Unknown type: ${type}`);
+    socket.destroy();
   }
 });
 

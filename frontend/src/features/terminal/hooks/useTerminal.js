@@ -18,7 +18,7 @@ export function useTerminal(sandboxId) {
 
     const nextSocket = io(getAgentSocketUrl(sandboxId), {
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
+      reconnectionDelayMax: 5000,
       timeout: 10000,
     });
 

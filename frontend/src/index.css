@@ -1,48 +1,149 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'NeueMachina';
+  src: url('./assets/fonts/NeueMachina-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
-  --color-glass-bg: rgba(15, 23, 42, 0.6);
-  --color-glass-border: rgba(255, 255, 255, 0.1);
-  --color-glow-purple: rgba(168, 85, 247, 0.5);
-  --color-glow-orange: rgba(249, 115, 22, 0.5);
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --color-glass-bg: rgba(10, 10, 10, 0.7);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --color-glow-primary: rgba(77, 140, 255, 0.15); /* Electric Blue */
+  --color-border-low-contrast: #222222;
+  --color-surface: #0a0a0a;
+  --color-background: #000000;
+  
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-machina: 'NeueMachina', sans-serif;
 }
 
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-100 antialiased min-h-screen overflow-x-hidden selection:bg-purple-500/30;
-    background-image:
-      linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
-    background-size: 50px 50px;
+    @apply bg-background text-slate-100 antialiased min-h-screen overflow-x-hidden selection:bg-blue-500/30;
   }
 }
 
 @layer components {
+  .panel-container {
+    @apply bg-surface border border-border-low-contrast rounded-lg flex flex-col overflow-hidden;
+  }
+
   .glass-panel {
-    @apply bg-glass-bg backdrop-blur-md border border-glass-border rounded-xl shadow-lg;
+    @apply bg-glass-bg backdrop-blur-xl border border-glass-border rounded-xl shadow-2xl;
   }
 
-  .glow-purple {
-    box-shadow: 0 0 40px -10px var(--color-glow-purple);
+  .thin-border {
+    @apply border border-border-low-contrast;
   }
 
-  .glow-orange {
-    box-shadow: 0 0 40px -10px var(--color-glow-orange);
+  .thin-border-r {
+    @apply border-r border-border-low-contrast;
+  }
+
+  .thin-border-b {
+    @apply border-b border-border-low-contrast;
+  }
+  
+  .thin-border-t {
+    @apply border-t border-border-low-contrast;
+  }
+
+  .glow-active {
+    box-shadow: inset 2px 0 0 0 #4d8cff, 0 0 20px 0 var(--color-glow-primary);
+    @apply bg-white/5;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-700 rounded-full;
+    @apply bg-transparent rounded-full transition-colors duration-200;
+  }
+  *:hover::-webkit-scrollbar-thumb {
+    @apply bg-white/20;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-600;
+    @apply bg-white/30;
   }
+}
+
+/* ── Allotment resize handle (sash) styling ── */
+
+/* Override Allotment's default CSS variables to remove blue highlights and divider lines */
+:root {
+  --focus-border: transparent !important;
+  --separator-border: transparent !important;
+}
+
+/* Hide any built-in before/after pseudoelements that draw the full-length lines */
+[class*='sash__']::before,
+.allotment-module_sash__3M_gH::before {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* Give the sash container enough width/height for an invisible grab zone */
+.allotment-module_sash__3M_gH,
+[class*='sash__'] {
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* The visible tiny rounded handle (pill) */
+[class*='sash__']::after,
+.allotment-module_sash__3M_gH::after {
+  content: '';
+  display: block;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.15) !important;
+  transition: background 0.2s ease, transform 0.2s ease;
+  position: absolute;
+  /* Centering */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Hover/Drag state for the handle */
+[class*='sash__']:hover::after,
+.allotment-module_sash__3M_gH:hover::after,
+[class*='sash__'][class*='active__']::after,
+.allotment-module_sash__3M_gH.allotment-module_active__2I9_P::after {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* HORIZONTAL split (left/right panes, so the sash is vertical) */
+[class*='sash__']:not([class*='vertical__'])::after,
+.allotment-module_sash__3M_gH:not(.allotment-module_vertical__23V_n)::after {
+  width: 32px !important;
+  height: 4px !important;
+}
+
+/* HORIZONTAL split hover growth */
+[class*='sash__']:not([class*='vertical__']):hover::after,
+.allotment-module_sash__3M_gH:not(.allotment-module_vertical__23V_n):hover::after {
+  width: 40px !important;
+}
+
+/* VERTICAL split (top/bottom panes, so the sash is horizontal) */
+[class*='sash__'][class*='vertical__']::after,
+.allotment-module_sash__3M_gH.allotment-module_vertical__23V_n::after {
+  width: 4px !important;
+  height: 32px !important;
+}
+
+/* VERTICAL split hover growth */
+[class*='sash__'][class*='vertical__']:hover::after,
+.allotment-module_sash__3M_gH.allotment-module_vertical__23V_n:hover::after {
+  height: 40px !important;
 }
