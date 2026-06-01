@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../hooks/useWorkspace.js';
 import ChatPanel from '../../chat/components/ChatPanel.jsx';
@@ -11,12 +11,77 @@ import { clsx } from 'clsx';
 import logoName from '../../../assets/images/logo-name-v1.png';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
+import { TerminalContext } from '../../terminal/store/terminal.context.jsx';
+import { useChat } from '../../chat/hooks/useChat.js';
+import { useHeartbeat } from '../hooks/useHeartbeat.js';
 
 export default function WorkspacePage() {
   const { sandboxId, openFiles, activeFile, setActiveFile, closeFile, exitWorkspace } = useWorkspace();
   const navigate = useNavigate();
   // We need a local state for the active tab since it can be either a file path or 'preview'
   const [activeTab, setActiveTab] = useState('preview');
+
+  const [idleWarningVisible, setIdleWarningVisible] = useState(false);
+  const [secondsRemaining, setSecondsRemaining]     = useState(120);
+
+  const { isStreaming: isAiWorking } = useChat();
+
+  // Read the shared socket from TerminalContext (same instance TerminalPanel uses)
+  const { socket: terminalSocket } = useContext(TerminalContext);
+  const lastTerminalOutputRef = useRef(0);
+  const TERMINAL_ACTIVE_WINDOW_MS = 10_000;
+
+  // Listen for terminal output on the shared socket
+  useEffect(() => {
+    if (!terminalSocket) return;
+    const handler = () => { lastTerminalOutputRef.current = Date.now(); };
+    terminalSocket.on('terminal-output', handler);
+    return () => terminalSocket.off('terminal-output', handler);
+  }, [terminalSocket]);
+
+  const isTerminalBusy = useCallback(() => {
+    return Date.now() - lastTerminalOutputRef.current < TERMINAL_ACTIVE_WINDOW_MS;
+  }, []);
+
+  const handleIdleWarning = useCallback(() => {
+    setIdleWarningVisible(true);
+  }, []);
+
+  const handleActivityResume = useCallback(() => {
+    setIdleWarningVisible(false);
+    setSecondsRemaining(null);
+  }, []);
+
+  // Poll actual Redis TTL every 3s while idle — this is the source of truth
+  useEffect(() => {
+    if (!idleWarningVisible || !sandboxId) return;
+
+    const fetchTTL = async () => {
+      try {
+        const res = await fetch(`http://${sandboxId}.agent.localhost/api/sandbox/ttl`, {
+          signal: AbortSignal.timeout(3_000),
+        });
+        const data = await res.json();
+        if (typeof data.ttl === 'number' && data.ttl > 0) {
+          setSecondsRemaining(data.ttl);
+        }
+      } catch {
+        // silent — stale value is fine for display
+      }
+    };
+
+    fetchTTL(); // immediate first fetch
+    const interval = setInterval(fetchTTL, 3_000);
+    return () => clearInterval(interval);
+  }, [idleWarningVisible, sandboxId]);
+
+  useHeartbeat({
+    sandboxId,
+    isAiWorking,
+    isTerminalBusy,
+    onIdleWarning:     handleIdleWarning,
+    onActivityResume:  handleActivityResume,
+  });
 
   useEffect(() => {
     if (!sandboxId) {
@@ -48,10 +113,45 @@ export default function WorkspacePage() {
       {/* Header */}
       <header className="h-12 border-b border-border-low-contrast bg-surface flex items-center px-4 shrink-0 justify-between relative">
         <div className="flex items-center gap-3 z-10">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-            <span className="font-medium text-sm text-slate-200">Workspace Active</span>
-          </div>
+          {idleWarningVisible ? (() => {
+            const s = secondsRemaining ?? 0;
+            const mins = String(Math.floor(s / 60)).padStart(2, '0');
+            const secs = String(s % 60).padStart(2, '0');
+            const formatted = secondsRemaining != null ? `${mins}:${secs}` : '…';
+
+            // Tier 1: >60s — muted amber
+            // Tier 2: 30–60s — full amber
+            // Tier 3: <30s — orange-red, pulsing dot
+            const tier = s > 60 ? 1 : s > 30 ? 2 : 3;
+            const containerCls = tier === 1
+              ? 'flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/8 border border-amber-500/15'
+              : tier === 2
+              ? 'flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/15 border border-amber-500/30'
+              : 'flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-500/15 border border-orange-500/40';
+            const dotCls = tier === 1
+              ? 'w-1.5 h-1.5 rounded-full bg-amber-500/50 shrink-0'
+              : tier === 2
+              ? 'w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0'
+              : 'w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 animate-pulse';
+            const textCls = tier === 1
+              ? 'text-amber-500/70 text-xs font-medium tabular-nums leading-none'
+              : tier === 2
+              ? 'text-amber-400 text-xs font-medium tabular-nums leading-none'
+              : 'text-orange-400 text-xs font-semibold tabular-nums leading-none';
+
+            return (
+              <div className={containerCls}>
+                <span className={dotCls} />
+                <span className={textCls}>Idle · {formatted}</span>
+              </div>
+            );
+          })() : (
+            // Active status pill
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+              <span className="font-medium text-sm text-slate-200">Workspace Active</span>
+            </div>
+          )}
         </div>
 
         {/* Center Logo */}

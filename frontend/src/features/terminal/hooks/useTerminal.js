@@ -12,6 +12,8 @@ export function useTerminal(sandboxId) {
 
   const { socket, setSocket, setIsConnected, ...state } = context;
   const socketRef = useRef(null);
+  const lastTerminalOutputRef = useRef(0);
+  const TERMINAL_ACTIVE_WINDOW_MS = 10_000;
 
   useEffect(() => {
     if (!sandboxId) return;
@@ -37,6 +39,11 @@ export function useTerminal(sandboxId) {
       setIsConnected(false);
     });
 
+    // Track terminal activity
+    nextSocket.on('terminal-output', () => {
+      lastTerminalOutputRef.current = Date.now();
+    });
+
     return () => {
       nextSocket.removeAllListeners();
       nextSocket.disconnect();
@@ -50,13 +57,19 @@ export function useTerminal(sandboxId) {
 
   const sendCommand = useCallback((input) => {
     if (socket && input) {
+      lastTerminalOutputRef.current = Date.now(); // Also count typing as activity
       socket.emit('terminal-input', input);
     }
   }, [socket]);
 
+  const isTerminalBusy = useCallback(() => {
+    return Date.now() - lastTerminalOutputRef.current < TERMINAL_ACTIVE_WINDOW_MS;
+  }, []);
+
   return {
     ...state,
     socket,
-    sendCommand
+    sendCommand,
+    isTerminalBusy
   };
 }

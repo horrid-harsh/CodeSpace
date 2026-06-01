@@ -3,6 +3,7 @@ import morgan from "morgan";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import http from 'http';
 import { createProxyServer } from 'httpxy';
+import { refreshTTL, getTTL } from "./config/redis.js";
 
 const app = express();
 app.use(morgan("combined"));
@@ -19,9 +20,14 @@ app.use((req, res, next) => {
 });
 
 app.get("/api/status/healthz", (req, res) => {
+  const { sandboxId } = getSandboxRoute(req);
+  if (sandboxId) {
+    refreshTTL(sandboxId).catch(err => console.error("Failed to refresh TTL on healthz", err));
+  }
   res.status(200).json({
     message: "Router is healthy",
     status: "success",
+    ts: Date.now()
   });
 });
 
@@ -30,6 +36,20 @@ app.get("/api/status/readyz", (req, res) => {
     message: "Router is ready",
     status: "success",
   });
+});
+
+// Returns the live Redis TTL for the requesting sandbox
+app.get("/api/sandbox/ttl", async (req, res) => {
+  const { sandboxId } = getSandboxRoute(req);
+  if (!sandboxId) {
+    return res.status(400).json({ error: "No sandboxId found in request" });
+  }
+  try {
+    const ttl = await getTTL(sandboxId);
+    return res.status(200).json({ sandboxId, ttl });
+  } catch (err) {
+    return res.status(500).json({ error: "Redis error" });
+  }
 });
 
 const serviceProxies = {};
@@ -95,12 +115,14 @@ export function getAgentProxy(sandboxId) {
   return agentProxies[sandboxId];
 }
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   const { sandboxId, type } = getSandboxRoute(req);
 
   if (!sandboxId || !type) {
     return next();
   }
+
+  await refreshTTL(sandboxId);
 
   if (type === "agent") {
     return getAgentProxy(sandboxId)(req, res, next);
@@ -130,15 +152,19 @@ server.on("upgrade", (req, socket, head) => {
 
   if (!sandboxId || !type) {
     socket.destroy();
-  } else if (type === "agent") {
-    wsProxy.ws(req, socket, { target: `http://sandbox-service-${sandboxId}:3000` }, head)
-      .catch(() => socket.destroy());
-  } else if (type === "preview") {
-    wsProxy.ws(req, socket, { target: `http://sandbox-service-${sandboxId}` }, head)
-      .catch(() => socket.destroy());
   } else {
-    console.error(`Unknown type: ${type}`);
-    socket.destroy();
+    refreshTTL(sandboxId).catch(err => console.error("Failed to refresh TTL on WS upgrade", err));
+    
+    if (type === "agent") {
+      wsProxy.ws(req, socket, { target: `http://sandbox-service-${sandboxId}:3000` }, head)
+        .catch(() => socket.destroy());
+    } else if (type === "preview") {
+      wsProxy.ws(req, socket, { target: `http://sandbox-service-${sandboxId}` }, head)
+        .catch(() => socket.destroy());
+    } else {
+      console.error(`Unknown type: ${type}`);
+      socket.destroy();
+    }
   }
 });
 
