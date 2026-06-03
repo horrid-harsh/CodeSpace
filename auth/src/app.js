@@ -5,7 +5,7 @@ import cookies from 'cookie-parser';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
-import authRoutes from "../routes/auth.routes.js";
+import authRoutes from "../src/routes/auth.routes.js";
 
 const app = express();
 
