@@ -45,7 +45,7 @@ spec:
                 name: jwt
                 key: JWT_SECRET   
 
-          - name: MONGO_URI
+          - name: MONGODB_URI
             valueFrom:
               secretKeyRef:
                 name: database
