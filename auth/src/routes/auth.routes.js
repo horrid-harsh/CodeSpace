@@ -51,10 +51,10 @@ router.get(
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      res.redirect("/");
+      res.redirect("/dashboard");
     } catch (error) {
       console.log(error);
-      res.redirect("/login");
+      res.redirect("/");
     }
   },
 );

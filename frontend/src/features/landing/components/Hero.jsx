@@ -21,23 +21,16 @@ export function Hero({ onStartSandbox, isLoading }) {
       
       <div className="flex flex-col sm:flex-row mt-8 sm:mt-10 justify-center items-center gap-3 select-none w-full sm:w-auto">
         <button 
-          onClick={onStartSandbox}
-          disabled={isLoading}
-          className="w-full sm:w-auto rounded-full bg-neutral-200 text-neutral-900 px-6 py-3 sm:py-2.5 flex justify-center items-center gap-2 hover:bg-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed font-medium cursor-pointer"
+          onClick={() => window.location.href = '/api/auth/google'}
+          className="w-full sm:w-auto rounded-full bg-neutral-200 text-neutral-900 px-6 py-3 sm:py-2.5 flex justify-center items-center gap-2 hover:bg-white transition-colors font-medium cursor-pointer"
         >
-          {isLoading ? (
-            <>
-              <div className="w-4 h-4 border-2 border-neutral-900/30 border-t-neutral-900 rounded-full animate-spin" />
-              Initializing...
-            </>
-          ) : (
-            <>
-              Launch Workspace
-              <ArrowRight className="size-4" />
-            </>
-          )}
+          Launch Workspace
+          <ArrowRight className="size-4" />
         </button>
-        <button className="w-full sm:w-auto bg-transparent rounded-full text-neutral-50 border border-white/10 px-6 py-3 sm:py-2.5 hover:bg-white/5 transition-colors font-medium cursor-pointer">
+        <button 
+          onClick={() => window.location.href = '/api/auth/google'}
+          className="w-full sm:w-auto bg-transparent rounded-full text-neutral-50 border border-white/10 px-6 py-3 sm:py-2.5 hover:bg-white/5 transition-colors font-medium cursor-pointer"
+        >
           Get Started
         </button>
       </div>
