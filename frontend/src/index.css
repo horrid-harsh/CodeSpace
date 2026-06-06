@@ -8,6 +8,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'ABCFavorit';
+  src: url('./assets/fonts/abc_favorit_medium.p.07z90h2q5wq-8.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-glass-bg: rgba(10, 10, 10, 0.7);
   --color-glass-border: rgba(255, 255, 255, 0.08);
@@ -19,11 +27,35 @@
   --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-machina: 'NeueMachina', sans-serif;
+  --font-favorit: 'ABCFavorit', sans-serif;
+
+  /* Landing Page Premium Theme Variables */
+  --radius: 0.625rem;
+  --color-foreground: oklch(0.985 0 0);
+  --color-card: oklch(0.205 0 0);
+  --color-card-foreground: oklch(0.985 0 0);
+  --color-popover: oklch(0.205 0 0);
+  --color-popover-foreground: oklch(0.985 0 0);
+  --color-primary: oklch(0.922 0 0);
+  --color-primary-foreground: oklch(0.205 0 0);
+  --color-secondary: oklch(0.269 0 0);
+  --color-secondary-foreground: oklch(0.985 0 0);
+  --color-muted: oklch(0.269 0 0);
+  --color-muted-foreground: oklch(0.708 0 0);
+  --color-accent: oklch(0.269 0 0);
+  --color-accent-foreground: oklch(0.985 0 0);
+  --color-destructive: oklch(0.704 0 22.216);
+  --color-border: oklch(1 0 0 / 10%);
+  --color-input: oklch(1 0 0 / 15%);
+  --color-ring: oklch(0.556 0 0);
 }
 
 @layer base {
   body {
-    @apply bg-background text-slate-100 antialiased min-h-screen overflow-x-hidden selection:bg-blue-500/30;
+    @apply bg-background text-slate-100 antialiased min-h-screen overflow-x-hidden selection:bg-neutral-800 selection:text-white;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-favorit);
   }
 }
 
