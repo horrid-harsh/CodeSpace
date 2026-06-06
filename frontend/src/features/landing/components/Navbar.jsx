@@ -91,24 +91,16 @@ export function Navbar({ onStartSandbox, isLoading }) {
           </div>
           
           <div className="hidden md:flex items-center gap-2">
-            <button className="bg-transparent rounded-full text-[#a1a1a1] hover:text-white px-5 py-2 transition-colors text-sm font-medium cursor-pointer">
+            <button 
+              onClick={() => window.location.href = '/api/auth/google'}
+              className="bg-transparent rounded-full text-[#a1a1a1] hover:text-white px-5 py-2 transition-colors text-sm font-medium cursor-pointer">
               Log in
             </button>
             <button 
-              onClick={onStartSandbox}
-              disabled={isLoading}
-              className="rounded-full bg-neutral-100 text-neutral-900 px-5 py-2 flex items-center gap-2 hover:bg-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed text-sm font-medium cursor-pointer"
+              onClick={() => window.location.href = '/api/auth/google'}
+              className="rounded-full bg-neutral-100 text-neutral-900 px-5 py-2 flex items-center gap-2 hover:bg-white transition-colors text-sm font-medium cursor-pointer"
             >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-neutral-900/30 border-t-neutral-900 rounded-full animate-spin" />
-                  Initializing...
-                </>
-              ) : (
-                <>
-                  Get started
-                </>
-              )}
+              Get started
             </button>
           </div>
 
@@ -152,17 +144,16 @@ export function Navbar({ onStartSandbox, isLoading }) {
 
         <div className="flex flex-col px-6 mt-6 overflow-y-auto pb-12 select-none">
           <button 
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              onStartSandbox();
-            }}
-            disabled={isLoading}
+            onClick={() => window.location.href = '/api/auth/google'}
             className="w-full bg-white/[0.03] border border-white/[0.08] text-white rounded-[14px] py-4 font-medium mb-3 flex justify-center items-center gap-2 transition-colors active:bg-white/[0.06]"
           >
-            {isLoading ? "Initializing..." : "Launch Workspace"}
+            Launch Workspace
           </button>
           
-          <button className="w-full text-[#a1a1a1] hover:text-white font-medium py-4 mb-6 transition-colors">
+          <button 
+            onClick={() => window.location.href = '/api/auth/google'}
+            className="w-full text-[#a1a1a1] hover:text-white font-medium py-4 mb-6 transition-colors"
+          >
             Log in
           </button>
 
