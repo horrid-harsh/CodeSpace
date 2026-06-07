@@ -1,89 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, LogOut, Settings, Folder, Activity, Terminal, PanelLeftClose, PanelLeftOpen, X, Globe, Server, Smartphone, Brain, Database, Shield, GitBranch, Clock, Code2, Zap, ShieldCheck, Lightbulb } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspace } from '../../workspace/hooks/useWorkspace.js';
+import { fetchProjects, createProject } from '../../workspace/services/sandbox.api.js';
+import { fetchCurrentUser, logoutUser } from '../../auth/services/auth.api.js';
 
-const dummyProjects = [
-  { 
-    id: 1, 
-    name: 'Portfolio Site', 
-    type: 'Web App',
-    description: 'Personal portfolio with dark theme and smooth animations',
-    techStack: [{ name: 'TypeScript', color: 'bg-orange-500' }, { name: 'React', color: 'bg-blue-500' }, { name: 'Next.js', color: 'bg-purple-500' }],
-    branch: 'main',
-    updated: '2h ago', 
-    status: 'Active',
-    icon: 'Globe'
-  },
-  { 
-    id: 2, 
-    name: 'API Gateway', 
-    type: 'Backend',
-    description: 'Microservices gateway with rate limiting and auth middleware',
-    techStack: [{ name: 'Go', color: 'bg-emerald-500' }, { name: 'Docker', color: 'bg-blue-600' }],
-    branch: 'develop',
-    updated: '5h ago', 
-    status: 'Active',
-    icon: 'Server'
-  },
-  { 
-    id: 3, 
-    name: 'Mobile Wallet', 
-    type: 'Mobile',
-    description: 'Cross-platform crypto wallet with biometric authentication',
-    techStack: [{ name: 'Flutter', color: 'bg-blue-400' }, { name: 'Dart', color: 'bg-red-500' }],
-    branch: 'feature/auth',
-    updated: '1d ago', 
-    status: 'Building',
-    icon: 'Smartphone'
-  },
-  { 
-    id: 4, 
-    name: 'LLM Playground', 
-    type: 'ML / AI',
-    description: 'Experimental sandbox for fine-tuning and prompt engineering',
-    techStack: [{ name: 'Python', color: 'bg-yellow-500' }, { name: 'PyTorch', color: 'bg-purple-600' }],
-    branch: 'experiments',
-    updated: '3d ago', 
-    status: 'Active',
-    icon: 'Brain'
-  },
-  { 
-    id: 5, 
-    name: 'Data Pipeline', 
-    type: 'Data',
-    description: 'ETL pipeline for real-time analytics and data warehousing',
-    techStack: [{ name: 'Python', color: 'bg-yellow-500' }, { name: 'Kafka', color: 'bg-emerald-600' }],
-    branch: 'main',
-    updated: '1w ago', 
-    status: 'Paused',
-    icon: 'Database'
-  },
-  { 
-    id: 6, 
-    name: 'Auth Service', 
-    type: 'Security',
-    description: 'Zero-trust authentication with OAuth2 and PKCE flow support',
-    techStack: [{ name: 'Rust', color: 'bg-orange-600' }, { name: 'gRPC', color: 'bg-blue-500' }],
-    branch: 'release/v2',
-    updated: '2d ago', 
-    status: 'Review',
-    icon: 'Shield'
-  },
-];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState('');
+  const [projects, setProjects] = useState([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
-  const handleLogout = () => {
-    // Dummy logout for now
-    navigate('/');
+  const loadUser = async () => {
+    try {
+      const userData = await fetchCurrentUser();
+      setUser(userData);
+    } catch (err) {
+      console.error("Failed to fetch user", err);
+    }
+  };
+
+  const loadProjects = async () => {
+    try {
+      const data = await fetchProjects();
+      setProjects(data.projects || []);
+    } catch (err) {
+      console.error("Failed to fetch projects", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProjects();
+    loadUser();
+  }, []);
+
+  const handleCreateProject = async () => {
+    if (!newProjectTitle.trim()) return;
+    setIsCreating(true);
+    try {
+      await createProject(newProjectTitle);
+      setNewProjectTitle('');
+      setIsModalOpen(false);
+      loadProjects();
+    } catch (err) {
+      console.error("Failed to create project", err);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleProjectClick = (projectId) => {
+    navigate(`/workspace/${projectId}`);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      navigate('/');
+    } catch (err) {
+      console.error("Failed to logout", err);
+    }
   };
 
   return (
-    <div className="flex h-screen bg-neutral-950 text-neutral-50 overflow-hidden font-sans">
+    <div className="flex h-screen bg-neutral-950 text-neutral-50 overflow-hidden font-sans select-none">
       {/* Sidebar */}
       <aside className={`border-r border-white/10 bg-neutral-900/30 backdrop-blur-xl flex-col justify-between hidden md:flex transition-all duration-300 ease-in-out ${isCollapsed ? 'w-20' : 'w-64'}`}>
         <div className="p-6 overflow-hidden">
@@ -110,10 +97,16 @@ export default function DashboardPage() {
 
         <div className={`p-6 border-t border-white/10 flex ${isCollapsed ? 'flex-col gap-4 items-center' : 'items-center justify-between'}`}>
           <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-            <div className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 p-[2px]">
-              <div className="w-full h-full rounded-full bg-neutral-900 border-2 border-transparent" />
+            <div className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 p-[2px] overflow-hidden">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <div className="w-full h-full rounded-full bg-neutral-900 flex items-center justify-center text-white text-sm font-bold">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'G'}
+                </div>
+              )}
             </div>
-            {!isCollapsed && <p className="text-sm font-medium text-white truncate">Guest User</p>}
+            {!isCollapsed && <p className="text-sm font-medium text-white truncate">{user?.name || 'Guest User'}</p>}
           </div>
           <button 
             onClick={handleLogout}
@@ -161,7 +154,7 @@ export default function DashboardPage() {
               <input 
                 type="text" 
                 placeholder="Search projects..." 
-                className="bg-[#121212] md:bg-neutral-900 border border-white/5 md:border-white/10 text-[13px] md:text-sm rounded-xl md:rounded-full pl-10 pr-4 py-2.5 md:py-2 w-full md:w-64 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                className="bg-[#121212] md:bg-neutral-900 border border-white/5 md:border-white/10 text-[13px] md:text-sm rounded-xl md:rounded-full pl-10 pr-4 py-2.5 md:py-2 w-full md:w-64 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all select-text"
               />
             </div>
             <div className="hidden md:block">
@@ -176,17 +169,10 @@ export default function DashboardPage() {
         {/* Dashboard Content */}
         <div className="p-4 md:p-8 max-w-6xl mx-auto w-full pb-28 md:pb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {dummyProjects.map((project) => {
-              const IconComponent = {
-                Globe, Server, Smartphone, Brain, Database, Shield
-              }[project.icon] || Folder;
-
+            {projects.map((project) => {
               const getStatusColor = (status) => {
                 switch (status) {
                   case 'Active': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-                  case 'Building': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-                  case 'Paused': return 'bg-red-500/10 text-red-400 border-red-500/20';
-                  case 'Review': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
                   default: return 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20';
                 }
               };
@@ -194,59 +180,55 @@ export default function DashboardPage() {
               const getStatusDot = (status) => {
                 switch (status) {
                   case 'Active': return 'bg-emerald-400';
-                  case 'Building': return 'bg-yellow-500';
-                  case 'Paused': return 'bg-red-400';
-                  case 'Review': return 'bg-purple-400';
                   default: return 'bg-neutral-400';
                 }
               };
 
               return (
                 <div 
-                  key={project.id} 
+                  key={project._id} 
+                  onClick={() => handleProjectClick(project._id)}
                   className="bg-[#151515] border border-white/5 rounded-2xl p-6 hover:bg-[#1a1a1a] hover:border-white/10 transition-colors cursor-pointer group flex flex-col h-full min-h-[240px]"
                 >
                   {/* Top Row: Type and Status */}
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-3 text-[#a1a1a1]">
                       <div className="p-2 bg-white/5 rounded-lg text-white/70">
-                        <IconComponent className="w-4 h-4" />
+                        <Terminal className="w-4 h-4" />
                       </div>
-                      <span className="text-xs font-medium">{project.type}</span>
+                      <span className="text-xs font-medium">Workspace</span>
                     </div>
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium ${getStatusColor(project.status)}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${getStatusDot(project.status)}`} />
-                      {project.status}
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium ${getStatusColor('Active')}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${getStatusDot('Active')}`} />
+                      Ready
                     </div>
                   </div>
 
                   {/* Title and Description */}
                   <h3 className="text-white font-semibold text-[17px] tracking-tight mb-2 group-hover:text-emerald-400 transition-colors">
-                    {project.name}
+                    {project.title}
                   </h3>
                   <p className="text-[#a1a1a1] text-[13px] leading-relaxed line-clamp-2 mb-6 flex-1">
-                    {project.description}
+                    A personalized sandbox environment for {project.title}.
                   </p>
 
                   {/* Tech Stack */}
                   <div className="flex flex-wrap items-center gap-2 mb-6">
-                    {project.techStack.map((tech) => (
-                      <div key={tech.name} className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-md text-[11px] font-medium text-[#d1d1d1]">
-                        <div className={`w-1.5 h-1.5 rounded-full ${tech.color}`} />
-                        {tech.name}
-                      </div>
-                    ))}
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-md text-[11px] font-medium text-[#d1d1d1]">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      Environment
+                    </div>
                   </div>
 
                   {/* Footer */}
                   <div className="flex items-center justify-between mt-auto text-[#888888] text-[11px] font-medium">
                     <div className="flex items-center gap-1.5 hover:text-white transition-colors">
                       <GitBranch className="w-3.5 h-3.5" />
-                      {project.branch}
+                      main
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5" />
-                      {project.updated}
+                      {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'Just now'}
                     </div>
                   </div>
                 </div>
@@ -254,7 +236,7 @@ export default function DashboardPage() {
             })}
           </div>
           
-          {dummyProjects.length === 0 && (
+          {!isLoading && projects.length === 0 && (
             <div className="flex flex-col items-center justify-center py-24 px-4 text-center mt-10">
               {/* Icon Container */}
               <div className="relative mb-8">
@@ -337,8 +319,12 @@ export default function DashboardPage() {
           </button>
           <button className="flex flex-col items-center gap-1.5 p-2 text-[#888888] hover:text-white transition-colors w-16" onClick={handleLogout}>
             <div className="w-8 h-8 flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full bg-[#222] border border-white/10 flex items-center justify-center text-[9px] font-bold text-white">
-                JD
+              <div className="w-6 h-6 rounded-full bg-[#222] border border-white/10 flex items-center justify-center text-[9px] font-bold text-white overflow-hidden">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  user?.name ? user.name.charAt(0).toUpperCase() : 'G'
+                )}
               </div>
             </div>
             <span className="text-[10px] font-medium">Profile</span>
@@ -369,7 +355,7 @@ export default function DashboardPage() {
                 value={newProjectTitle}
                 onChange={(e) => setNewProjectTitle(e.target.value)}
                 placeholder="e.g. my-awesome-app" 
-                className="w-full bg-neutral-900 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-neutral-600"
+                className="w-full bg-neutral-900 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-neutral-600 select-text"
                 autoFocus
               />
             </div>
@@ -382,14 +368,10 @@ export default function DashboardPage() {
               </button>
               <button 
                 className="btn-new-project disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!newProjectTitle.trim()}
-                onClick={() => {
-                  // TODO: Handle project creation logic
-                  setIsModalOpen(false);
-                  setNewProjectTitle('');
-                }}
+                disabled={!newProjectTitle.trim() || isCreating}
+                onClick={handleCreateProject}
               >
-                Create Project
+                {isCreating ? 'Creating...' : 'Create Project'}
               </button>
             </div>
           </div>

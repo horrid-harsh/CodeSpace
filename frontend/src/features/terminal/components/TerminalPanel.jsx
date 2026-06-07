@@ -45,6 +45,7 @@ export default function TerminalPanel() {
       try {
         if (!isOpened) {
           xterm.open(container);
+          xterm.writeln('\x1b[36mBooting sandbox environment... Please wait.\x1b[0m');
           isOpened = true;
         }
         fitAddon.fit();
@@ -96,6 +97,35 @@ export default function TerminalPanel() {
       socket.off('terminal-output', outputHandler);
     };
   }, [socket, sendCommand]);
+
+  // Progressive loading messages
+  useEffect(() => {
+    const xterm = xtermRef.current;
+    if (!xterm) return;
+
+    let timeoutIds = [];
+
+    if (!isConnected) {
+      timeoutIds.push(setTimeout(() => {
+        if (!isConnected) xterm.writeln('\x1b[36mInitializing container network...\x1b[0m');
+      }, 1500));
+      
+      timeoutIds.push(setTimeout(() => {
+        if (!isConnected) xterm.writeln('\x1b[36mMounting workspace volumes...\x1b[0m');
+      }, 3000));
+      
+      timeoutIds.push(setTimeout(() => {
+        if (!isConnected) xterm.writeln('\x1b[36mStarting development server...\x1b[0m');
+      }, 4500));
+    } else {
+      xterm.writeln('\x1b[32m✓ Connected to sandbox environment.\x1b[0m');
+      xterm.writeln(''); // Empty line for spacing
+    }
+
+    return () => {
+      timeoutIds.forEach(clearTimeout);
+    };
+  }, [isConnected]);
 
   return (
     <div className="flex flex-col h-full w-full">

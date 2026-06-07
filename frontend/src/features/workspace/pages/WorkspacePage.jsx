@@ -1,12 +1,12 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useWorkspace } from '../hooks/useWorkspace.js';
 import ChatPanel from '../../chat/components/ChatPanel.jsx';
 import PreviewPanel from '../../preview/components/PreviewPanel.jsx';
 import TerminalPanel from '../../terminal/components/TerminalPanel.jsx';
 import ExplorerPanel from '../../explorer/components/ExplorerPanel.jsx';
 import EditorPanel from '../../editor/components/EditorPanel.jsx';
-import { X, Play } from 'lucide-react';
+import { X, Play, ArrowLeft } from 'lucide-react';
 import { clsx } from 'clsx';
 import logoName from '../../../assets/images/logo-name-v1.png';
 import { Allotment } from 'allotment';
@@ -16,8 +16,10 @@ import { useChat } from '../../chat/hooks/useChat.js';
 import { useHeartbeat } from '../hooks/useHeartbeat.js';
 
 export default function WorkspacePage() {
-  const { sandboxId, openFiles, activeFile, setActiveFile, closeFile, exitWorkspace } = useWorkspace();
+  const { sandboxId, handleStartSandbox, isLoading, openFiles, activeFile, setActiveFile, closeFile, exitWorkspace } = useWorkspace();
   const navigate = useNavigate();
+  const { projectId } = useParams();
+  const [isInitializing, setIsInitializing] = useState(false);
   // We need a local state for the active tab since it can be either a file path or 'preview'
   const [activeTab, setActiveTab] = useState('preview');
 
@@ -84,10 +86,16 @@ export default function WorkspacePage() {
   });
 
   useEffect(() => {
-    if (!sandboxId) {
-      navigate('/');
+    if (!sandboxId && projectId && !isInitializing) {
+      setIsInitializing(true);
+      handleStartSandbox(projectId).catch((err) => {
+        console.error("Failed to restore workspace session:", err);
+        navigate('/dashboard');
+      });
+    } else if (!sandboxId && !projectId) {
+      navigate('/dashboard');
     }
-  }, [sandboxId, navigate]);
+  }, [sandboxId, projectId, handleStartSandbox, navigate, isInitializing]);
 
   // When activeFile changes from the explorer, switch to it
   useEffect(() => {
@@ -96,7 +104,17 @@ export default function WorkspacePage() {
     }
   }, [activeFile]);
 
-  if (!sandboxId) return null;
+  if (!sandboxId) {
+    if (isLoading || isInitializing) {
+      return (
+        <div className="h-screen w-screen bg-background flex flex-col items-center justify-center text-slate-300 font-sans">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mb-6"></div>
+          <p className="text-[#a0a0a0] text-sm font-medium">Connecting to workspace...</p>
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="h-screen w-screen bg-background flex flex-col overflow-hidden text-slate-300">
@@ -112,7 +130,7 @@ export default function WorkspacePage() {
 
       {/* Header */}
       <header className="h-12 border-b border-border-low-contrast bg-surface flex items-center px-4 shrink-0 justify-between relative">
-        <div className="flex items-center gap-3 z-10">
+        <div className="flex items-center gap-4 z-10">
           {idleWarningVisible ? (() => {
             const s = secondsRemaining ?? 0;
             const mins = String(Math.floor(s / 60)).padStart(2, '0');
@@ -155,7 +173,7 @@ export default function WorkspacePage() {
         </div>
 
         {/* Center Logo */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none z-10">
           <img 
             src={logoName} 
             alt="Logo" 
@@ -163,6 +181,18 @@ export default function WorkspacePage() {
             draggable="false" 
             onClick={exitWorkspace}
           />
+        </div>
+
+        {/* Right Actions */}
+        <div className="flex items-center z-10">
+          <button 
+            onClick={exitWorkspace}
+            className="flex items-center gap-2 px-3 py-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-md transition-colors cursor-pointer text-sm font-medium"
+            title="Back to Dashboard"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to dashboard
+          </button>
         </div>
       </header>
 

@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../../workspace/hooks/useWorkspace.js';
+import { fetchCurrentUser } from '../../auth/services/auth.api.js';
 import { Navbar } from '../components/Navbar.jsx';
 import { Hero } from '../components/Hero.jsx';
 import { IdeMockup } from '../components/IdeMockup.jsx';
@@ -10,6 +11,7 @@ import { Footer } from '../components/Footer.jsx';
 export default function LandingPage() {
   const { handleStartSandbox, sandboxId, isLoading, error } = useWorkspace();
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     if (sandboxId) {
@@ -17,12 +19,39 @@ export default function LandingPage() {
     }
   }, [sandboxId, navigate]);
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        await fetchCurrentUser();
+        setIsLoggedIn(true);
+      } catch (err) {
+        setIsLoggedIn(false);
+      }
+    };
+    checkAuth();
+  }, []);
+
+  const handleLaunchWorkspace = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isLoggedIn) {
+      navigate('/dashboard');
+      return;
+    }
+    try {
+      // Re-check auth explicitly to prevent race condition if clicked immediately after reload
+      await fetchCurrentUser();
+      navigate('/dashboard');
+    } catch (err) {
+      window.location.href = '/api/auth/google';
+    }
+  };
+
   return (
     <div className="relative bg-neutral-950 text-neutral-50 w-full min-h-screen overflow-x-hidden pt-24">
       <div className="bg-[linear-gradient(oklch(1_0_0/.04)_1px,transparent_1px),linear-gradient(90deg,oklch(1_0_0/.04)_1px,transparent_1px)] pointer-events-none absolute inset-0" />
       
-      <Navbar onStartSandbox={handleStartSandbox} isLoading={isLoading} />
-      <Hero onStartSandbox={handleStartSandbox} isLoading={isLoading} />
+      <Navbar onLaunchWorkspace={handleLaunchWorkspace} />
+      <Hero onLaunchWorkspace={handleLaunchWorkspace} />
       <IdeMockup />
       <FeaturePillars />
       

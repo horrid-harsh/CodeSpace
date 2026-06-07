@@ -19,7 +19,9 @@ export default function PreviewPanel() {
         
         const response = await fetch(url);
         if (response.ok && isMounted) {
-          setIsBooting(false);
+          // Give the Vite dev server inside the container a few seconds to start up
+          await new Promise(r => setTimeout(r, 2500));
+          if (isMounted) setIsBooting(false);
           return true;
         }
       } catch (err) {
@@ -102,7 +104,7 @@ export default function PreviewPanel() {
         
         <iframe
           key={key}
-          src={previewUrl}
+          src={isBooting ? "about:blank" : previewUrl}
           className="absolute inset-0 w-full h-full border-0"
           title="Live Preview"
           sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation"

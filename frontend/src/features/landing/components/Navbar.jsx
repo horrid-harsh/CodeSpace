@@ -2,7 +2,7 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import logo from "../../../assets/images/logo-name-v3.png";
 
-export function Navbar({ onStartSandbox, isLoading }) {
+export function Navbar({ onLaunchWorkspace }) {
   const [isVisible, setIsVisible] = useState(true);
   const [isAtTop, setIsAtTop] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -144,7 +144,7 @@ export function Navbar({ onStartSandbox, isLoading }) {
 
         <div className="flex flex-col px-6 mt-6 overflow-y-auto pb-12 select-none">
           <button 
-            onClick={() => window.location.href = '/api/auth/google'}
+            onClick={onLaunchWorkspace}
             className="w-full bg-white/[0.03] border border-white/[0.08] text-white rounded-[14px] py-4 font-medium mb-3 flex justify-center items-center gap-2 transition-colors active:bg-white/[0.06]"
           >
             Launch Workspace
