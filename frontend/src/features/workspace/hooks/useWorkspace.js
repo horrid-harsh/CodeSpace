@@ -8,11 +8,11 @@ export function useWorkspace() {
 
   const { setSandboxId, setPreviewUrl, setIsLoading, setError, ...state } = context;
 
-  const handleStartSandbox = useCallback(async () => {
+  const handleStartSandbox = useCallback(async (projectId) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await startSandbox();
+      const data = await startSandbox(projectId);
       setSandboxId(data.sandboxId);
       setPreviewUrl(data.previewUrl);
       return data;

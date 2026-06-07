@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useWorkspace } from '../../workspace/hooks/useWorkspace.js';
-import { ChevronRight, ChevronDown, FileIcon, FolderIcon, RefreshCw } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileIcon, FolderIcon, RefreshCw, Database } from 'lucide-react';
 import { clsx } from 'clsx';
 
 // Helper to convert flat file paths into a nested tree structure
@@ -109,27 +109,61 @@ export default function ExplorerPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchFiles = async () => {
+  // Use useEffect to poll for files gracefully while sandbox boots
+  useEffect(() => {
+    if (!sandboxId) return;
+
+    let isMounted = true;
+    let timeoutId;
+
+    const fetchWithRetry = async (attempts = 0) => {
+      setIsLoading(true);
+      if (attempts === 0) setError(null);
+      
+      try {
+        const url = `http://${sandboxId}.agent.localhost/list-files`;
+        const response = await axios.get(url);
+        if (isMounted) {
+          setFiles(response.data.files || []);
+          setError(null);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          if (attempts < 15) { // Try for ~30 seconds
+            if (attempts === 0) setError('Booting sandbox environment...');
+            timeoutId = setTimeout(() => fetchWithRetry(attempts + 1), 2000);
+          } else {
+            console.error(err);
+            setError('Failed to connect to sandbox. Please refresh.');
+            setIsLoading(false);
+          }
+        }
+      }
+    };
+
+    fetchWithRetry();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [sandboxId]);
+
+  const handleManualRefresh = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const url = `http://${sandboxId}.agent.localhost/list-files`;
-      
       const response = await axios.get(url);
       setFiles(response.data.files || []);
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Failed to fetch files');
+      setError('Failed to fetch files');
     } finally {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (sandboxId) {
-      fetchFiles();
-    }
-  }, [sandboxId]);
 
   const fileTree = useMemo(() => buildFileTree(files), [files]);
 
@@ -138,7 +172,7 @@ export default function ExplorerPanel() {
       <div className="h-9 flex items-center justify-between px-4 shrink-0">
         <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Explorer</h2>
         <button 
-          onClick={fetchFiles}
+          onClick={handleManualRefresh}
           className="text-slate-500 hover:text-slate-300 transition-colors p-1 rounded cursor-pointer"
           title="Refresh"
         >
@@ -156,6 +190,11 @@ export default function ExplorerPanel() {
         ) : (
           <FileTreeNode node={fileTree} />
         )}
+      </div>
+
+      <div className="h-10 flex items-center px-4 shrink-0 border-t border-[#2d2d2d] text-slate-400 select-none">
+        <Database size={13} className="mr-2" />
+        <span className="text-[11px]">AWS S3 connected</span>
       </div>
     </div>
   );

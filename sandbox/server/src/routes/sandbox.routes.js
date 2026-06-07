@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { createPod } from "../kubernetes/pod.js";
+import { createPod, isPodRunning } from "../kubernetes/pod.js";
 import { createService } from "../kubernetes/service.js";
-import { createSandboxKey } from "../config/redis.js";
+import { createSandboxKey, getProjectActiveSandbox, isSandboxActive, setProjectActiveSandbox } from "../config/redis.js";
 import { v7 as uuid } from "uuid";
 import { authenticateUser } from "../middlewares/auth.middleware.js";
 import Project from "../models/project.model.js";
@@ -55,12 +55,23 @@ router.post("/start", authenticateUser, async (req, res) => {
     });
   }
 
+  const existingSandboxId = await getProjectActiveSandbox(projectId);
+  if (existingSandboxId && await isSandboxActive(existingSandboxId) && await isPodRunning(existingSandboxId)) {
+    console.log(`Reusing existing sandbox ${existingSandboxId} for project ${projectId}`);
+    return res.status(200).json({
+      message: "Sandbox reconnected successfully",
+      sandboxId: existingSandboxId,
+      previewUrl: `http://${existingSandboxId}.preview.localhost`,
+    });
+  }
+
   const sandboxId = uuid();
 
   await Promise.all([
     createPod(sandboxId, projectId),
     createService(sandboxId),
     createSandboxKey(sandboxId),
+    setProjectActiveSandbox(projectId, sandboxId),
   ]);
 
   return res.status(201).json({

@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 
-export function Hero({ onStartSandbox, isLoading }) {
+export function Hero({ onLaunchWorkspace }) {
   return (
     <div className="relative z-10 text-center flex px-6 md:px-12 pt-12 md:pt-16 pb-8 md:pb-10 flex-col items-center">
       <div className="inline-flex backdrop-blur-md rounded-full bg-neutral-900/50 border border-white/10 mb-6 px-4 py-1.5 items-center gap-2 select-none">
@@ -21,7 +21,7 @@ export function Hero({ onStartSandbox, isLoading }) {
       
       <div className="flex flex-col sm:flex-row mt-8 sm:mt-10 justify-center items-center gap-3 select-none w-full sm:w-auto">
         <button 
-          onClick={() => window.location.href = '/api/auth/google'}
+          onClick={onLaunchWorkspace}
           className="w-full sm:w-auto rounded-full bg-neutral-200 text-neutral-900 px-6 py-3 sm:py-2.5 flex justify-center items-center gap-2 hover:bg-white transition-colors font-medium cursor-pointer"
         >
           Launch Workspace

@@ -142,3 +142,23 @@ export async function deletePod(sandboxId) {
 
   return response;
 }
+
+export async function isPodRunning(sandboxId) {
+  try {
+    const response = await k8sCoreV1Api.readNamespacedPod({
+      name: `sandbox-pod-${sandboxId}`,
+      namespace: "default",
+    });
+    
+    // If it has a deletionTimestamp, it is in the process of terminating
+    if (response.metadata?.deletionTimestamp) {
+      return false;
+    }
+    
+    // It exists and is not terminating
+    return true;
+  } catch (err) {
+    // If 404 or any other error, assume it's not running
+    return false;
+  }
+}
